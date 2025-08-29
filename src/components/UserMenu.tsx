@@ -66,7 +66,7 @@ export const UserMenu: React.FC = () => {
   const [doubanProxyUrl, setDoubanProxyUrl] = useState('');
   const [enableOptimization, setEnableOptimization] = useState(true);
   const [fluidSearch, setFluidSearch] = useState(true);
-  const [liveDirectConnect, setLiveDirectConnect] = useState(false);
+  const [liveDirectConnect, setLiveDirectConnect] = useState(true);
   const [doubanDataSource, setDoubanDataSource] = useState('cmliussss-cdn-tencent');
   const [doubanImageProxyType, setDoubanImageProxyType] = useState('cmliussss-cdn-tencent');
   const [doubanImageProxyUrl, setDoubanImageProxyUrl] = useState('');
@@ -432,7 +432,7 @@ export const UserMenu: React.FC = () => {
     setDefaultAggregateSearch(true);
     setEnableOptimization(true);
     setFluidSearch(defaultFluidSearch);
-    setLiveDirectConnect(false);
+    setLiveDirectConnect(true);
     setDoubanProxyUrl(defaultDoubanProxy);
     setDoubanDataSource(defaultDoubanProxyType);
     setDoubanImageProxyType(defaultDoubanImageProxyType);
@@ -442,7 +442,7 @@ export const UserMenu: React.FC = () => {
       localStorage.setItem('defaultAggregateSearch', JSON.stringify(true));
       localStorage.setItem('enableOptimization', JSON.stringify(true));
       localStorage.setItem('fluidSearch', JSON.stringify(defaultFluidSearch));
-      localStorage.setItem('liveDirectConnect', JSON.stringify(false));
+      localStorage.setItem('liveDirectConnect', JSON.stringify(true));
       localStorage.setItem('doubanProxyUrl', defaultDoubanProxy);
       localStorage.setItem('doubanDataSource', defaultDoubanProxyType);
       localStorage.setItem('doubanImageProxyType', defaultDoubanImageProxyType);
