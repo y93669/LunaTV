@@ -39,7 +39,7 @@ export default function TVBoxConfigPage() {
                 TVBox 配置
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                将 LunaTV 的视频源导入到 TVBox 应用中使用
+                将 蓝果TV 的视频源导入到 TVBox 应用中使用
               </p>
             </div>
           </div>
@@ -89,6 +89,18 @@ export default function TVBoxConfigPage() {
           </div>
         </div>
 
+        {/* 查看配置按钮 */}
+        <div className="mb-6 flex justify-center">
+          <a
+            href="https://languo.top/tvbox"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
+          >
+            点击此处查看具体配置
+          </a>
+        </div>
+
         {/* 使用说明 */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
@@ -133,7 +145,7 @@ export default function TVBoxConfigPage() {
                   开始使用
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  配置导入成功后，即可在 TVBox 中浏览和观看 LunaTV 的视频内容。
+                  配置导入成功后，即可在 TVBox 中浏览和观看 蓝果TV 的视频内容。
                 </p>
               </div>
             </div>
@@ -153,7 +165,7 @@ export default function TVBoxConfigPage() {
                 视频功能
               </h3>
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-6">
-                <li>• 自动同步 LunaTV 的所有视频源</li>
+                <li>• 自动同步 蓝果TV 的所有视频源</li>
                 <li>• 支持搜索和快速搜索</li>
                 <li>• 支持分类筛选</li>
                 <li>• 内置视频解析接口</li>
@@ -209,7 +221,7 @@ export default function TVBoxConfigPage() {
             ⚠️ 注意事项
           </h3>
           <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
-            <li>• 确保 TVBox 设备能够访问您的 LunaTV 服务器</li>
+            <li>• 确保 TVBox 设备能够访问 蓝果TV 服务器</li>
             <li>• 建议使用 HTTPS 协议确保安全性</li>
             <li>• 配置修改后即时生效，无需等待缓存刷新</li>
             <li>• 解析效果取决于原始视频源的可用性</li>
