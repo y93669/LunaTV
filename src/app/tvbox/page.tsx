@@ -1,19 +1,56 @@
 'use client';
 
-import { Monitor, Smartphone, Tv } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { AlertTriangle, Monitor, Shield, Smartphone, Tv } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
+
+interface SecurityConfig {
+  enableAuth: boolean;
+  token: string;
+  enableIpWhitelist: boolean;
+  allowedIPs: string[];
+  enableRateLimit: boolean;
+  rateLimit: number;
+}
 
 export default function TVBoxConfigPage() {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState<'json' | 'base64'>('json');
+  const [securityConfig, setSecurityConfig] = useState<SecurityConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 获取安全配置
+  const fetchSecurityConfig = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/config');
+      if (response.ok) {
+        const data = await response.json();
+        setSecurityConfig(data.Config.TVBoxSecurityConfig || null);
+      }
+    } catch (error) {
+      console.error('获取安全配置失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSecurityConfig();
+  }, [fetchSecurityConfig]);
 
   const getConfigUrl = useCallback(() => {
     if (typeof window === 'undefined') return '';
     const baseUrl = window.location.origin;
-    return `${baseUrl}/api/tvbox?format=${format}`;
-  }, [format]);
+    let url = `${baseUrl}/api/tvbox?format=${format}`;
+    
+    // 如果启用了Token验证，自动添加token参数
+    if (securityConfig?.enableAuth && securityConfig.token) {
+      url += `&token=${securityConfig.token}`;
+    }
+    
+    return url;
+  }, [format, securityConfig]);
 
   const handleCopy = async () => {
     try {
@@ -44,6 +81,49 @@ export default function TVBoxConfigPage() {
             </div>
           </div>
         </div>
+
+        {/* 安全状态提示 */}
+        {!loading && securityConfig && (
+          <div className="mb-6">
+            {(securityConfig.enableAuth || securityConfig.enableIpWhitelist || securityConfig.enableRateLimit) ? (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-green-800 dark:text-green-200 mb-1">
+                      🔒 已启用安全配置
+                    </h3>
+                    <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                      {securityConfig.enableAuth && (
+                        <p>• Token验证：已启用（URL已自动包含token）</p>
+                      )}
+                      {securityConfig.enableIpWhitelist && (
+                        <p>• IP白名单：已启用（限制 {securityConfig.allowedIPs.length} 个IP访问）</p>
+                      )}
+                      {securityConfig.enableRateLimit && (
+                        <p>• 频率限制：每分钟最多 {securityConfig.rateLimit} 次请求</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                      ⚠️ 安全提醒
+                    </h3>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      当前未启用任何安全配置，任何人都可以访问您的TVBox配置。建议在管理后台启用安全选项。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 配置链接卡片 */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
@@ -200,7 +280,10 @@ export default function TVBoxConfigPage() {
               <h4 className="font-semibold text-gray-900 dark:text-white mb-2">API 端点</h4>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-3 font-mono text-xs">
                 GET /api/tvbox?format=json<br />
-                GET /api/tvbox?format=base64
+                GET /api/tvbox?format=base64<br />
+                {securityConfig?.enableAuth && (
+                  <>GET /api/tvbox?format=json&token=***<br /></>
+                )}
               </div>
             </div>
 
@@ -225,6 +308,15 @@ export default function TVBoxConfigPage() {
             <li>• 建议使用 HTTPS 协议确保安全性</li>
             <li>• 配置修改后即时生效，无需等待缓存刷新</li>
             <li>• 解析效果取决于原始视频源的可用性</li>
+            {securityConfig?.enableAuth && (
+              <li>• 配置链接包含访问token，请勿泄露给他人</li>
+            )}
+            {securityConfig?.enableIpWhitelist && (
+              <li>• IP白名单限制下，只有授权IP可以访问配置</li>
+            )}
+            {securityConfig?.enableRateLimit && (
+              <li>• 频率限制可能影响频繁刷新，属于正常现象</li>
+            )}
           </ul>
         </div>
       </div>
