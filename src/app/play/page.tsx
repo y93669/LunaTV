@@ -2666,6 +2666,113 @@ function PlayPageClient() {
         // 应用CSS优化
         optimizeDanmukuControlsCSS();
 
+        // 精确解决弹幕菜单与进度条拖拽冲突 - 基于ArtPlayer原生拖拽逻辑
+        const fixDanmakuProgressConflict = () => {
+          let isDraggingProgress = false;
+          
+          setTimeout(() => {
+            const progressControl = document.querySelector('.art-control-progress') as HTMLElement;
+            if (!progressControl) return;
+            
+            // 添加精确的CSS控制
+            const addPrecisionCSS = () => {
+              if (document.getElementById('danmaku-drag-fix')) return;
+              
+              const style = document.createElement('style');
+              style.id = 'danmaku-drag-fix';
+              style.textContent = `
+                /* 仅在拖拽状态时禁用弹幕hover */
+                .artplayer[data-dragging="true"] .artplayer-plugin-danmuku .apd-config:hover .apd-config-panel,
+                .artplayer[data-dragging="true"] .artplayer-plugin-danmuku .apd-style:hover .apd-style-panel {
+                  opacity: 0 !important;
+                  pointer-events: none !important;
+                }
+                
+                /* 核心修复：确保进度条在弹幕面板上方，或让面板不拦截进度条点击 */
+                .art-progress {
+                  position: relative;
+                  z-index: 999 !important;
+                }
+                
+                /* 弹幕面板pointer-events精确控制 - 只有内容区域可点击，面板背景不拦截 */
+                .artplayer-plugin-danmuku .apd-config-panel {
+                  pointer-events: none !important;
+                }
+                
+                .artplayer-plugin-danmuku .apd-style-panel {
+                  pointer-events: none !important;
+                }
+                
+                /* 只有内容区域可以接收点击事件 */
+                .artplayer-plugin-danmuku .apd-config-panel-inner,
+                .artplayer-plugin-danmuku .apd-style-panel-inner {
+                  pointer-events: auto !important;
+                }
+                
+                /* 面板内的具体控件可以点击 */
+                .artplayer-plugin-danmuku .apd-config-panel .apd-mode,
+                .artplayer-plugin-danmuku .apd-config-panel .apd-other,
+                .artplayer-plugin-danmuku .apd-config-panel .apd-slider,
+                .artplayer-plugin-danmuku .apd-style-panel .apd-mode,
+                .artplayer-plugin-danmuku .apd-style-panel .apd-color {
+                  pointer-events: auto !important;
+                }
+              `;
+              document.head.appendChild(style);
+            };
+            
+            // 精确模拟ArtPlayer的拖拽检测逻辑
+            const handleProgressMouseDown = (event: MouseEvent) => {
+              // 只有左键才开始拖拽检测
+              if (event.button === 0) {
+                isDraggingProgress = true;
+                const artplayer = document.querySelector('.artplayer') as HTMLElement;
+                if (artplayer) {
+                  artplayer.setAttribute('data-dragging', 'true');
+                }
+              }
+            };
+            
+            // 监听document的mousemove，与ArtPlayer保持一致
+            const handleDocumentMouseMove = () => {
+              // 如果正在拖拽，确保弹幕菜单被隐藏
+              if (isDraggingProgress) {
+                const panels = document.querySelectorAll('.artplayer-plugin-danmuku .apd-config-panel, .artplayer-plugin-danmuku .apd-style-panel') as NodeListOf<HTMLElement>;
+                panels.forEach(panel => {
+                  if (panel.style.opacity !== '0') {
+                    panel.style.opacity = '0';
+                    panel.style.pointerEvents = 'none';
+                  }
+                });
+              }
+            };
+            
+            // mouseup时立即恢复 - 与ArtPlayer逻辑完全同步
+            const handleDocumentMouseUp = () => {
+              if (isDraggingProgress) {
+                isDraggingProgress = false;
+                const artplayer = document.querySelector('.artplayer') as HTMLElement;
+                if (artplayer) {
+                  artplayer.removeAttribute('data-dragging');
+                }
+                // 立即恢复，不使用延迟
+              }
+            };
+            
+            // 绑定事件 - 与ArtPlayer使用相同的事件绑定方式
+            progressControl.addEventListener('mousedown', handleProgressMouseDown);
+            document.addEventListener('mousemove', handleDocumentMouseMove);
+            document.addEventListener('mouseup', handleDocumentMouseUp);
+            
+            // 应用CSS
+            addPrecisionCSS();
+            
+          }, 1500); // 等待弹幕插件加载
+        };
+        
+        // 启用精确修复
+        fixDanmakuProgressConflict();
+
         // 移动端弹幕配置按钮点击切换支持 - 基于ArtPlayer设置按钮原理
         const addMobileDanmakuToggle = () => {
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
