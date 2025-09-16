@@ -177,7 +177,7 @@ export default function TVBoxConfigPage() {
             rel="noopener noreferrer"
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
           >
-            点击此处查看具体配置
+            点击此处下载TVBOX
           </a>
         </div>
 
