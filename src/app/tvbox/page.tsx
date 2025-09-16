@@ -172,7 +172,7 @@ export default function TVBoxConfigPage() {
         {/* 查看配置按钮 */}
         <div className="mb-6 flex justify-center">
           <a
-            href="https://languo.top/tvbox"
+            href="https://qunbao.xyz/tvbox"
             target="_blank"
             rel="noopener noreferrer"
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
