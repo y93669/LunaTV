@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Monitor, Shield, Smartphone, Tv } from 'lucide-react';
+import { AlertTriangle, Monitor, Shield, Smartphone, Tv, Activity } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
@@ -14,11 +14,44 @@ interface SecurityConfig {
   rateLimit: number;
 }
 
+interface DiagnosisResult {
+  spider?: string;
+  spiderPrivate?: boolean;
+  spiderReachable?: boolean;
+  spiderStatus?: number;
+  spiderSizeKB?: number;
+  spiderLastModified?: string;
+  contentLength?: string;
+  lastModified?: string;
+  spider_url?: string;
+  spider_md5?: string;
+  spider_cached?: boolean;
+  spider_real_size?: number;
+  spider_tried?: number;
+  spider_success?: boolean;
+  spider_backup?: string;
+  spider_candidates?: string[];
+  status?: number;
+  contentType?: string;
+  hasJson?: boolean;
+  sitesCount?: number;
+  livesCount?: number;
+  parsesCount?: number;
+  privateApis?: number;
+  configUrl?: string;
+  issues?: string[];
+  pass?: boolean;
+  error?: string;
+}
+
 export default function TVBoxConfigPage() {
   const [copied, setCopied] = useState(false);
   const [format, setFormat] = useState<'json' | 'base64'>('json');
+  const [configMode, setConfigMode] = useState<'standard' | 'safe' | 'fast' | 'yingshicang'>('standard');
   const [securityConfig, setSecurityConfig] = useState<SecurityConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
 
   // 获取安全配置（使用普通用户可访问的接口）
   const fetchSecurityConfig = useCallback(async () => {
@@ -42,15 +75,22 @@ export default function TVBoxConfigPage() {
   const getConfigUrl = useCallback(() => {
     if (typeof window === 'undefined') return '';
     const baseUrl = window.location.origin;
-    let url = `${baseUrl}/api/tvbox?format=${format}`;
-    
+    const params = new URLSearchParams();
+
+    params.append('format', format);
+
     // 如果启用了Token验证，自动添加token参数
     if (securityConfig?.enableAuth && securityConfig.token) {
-      url += `&token=${securityConfig.token}`;
+      params.append('token', securityConfig.token);
     }
-    
-    return url;
-  }, [format, securityConfig]);
+
+    // 添加配置模式参数
+    if (configMode !== 'standard') {
+      params.append('mode', configMode);
+    }
+
+    return `${baseUrl}/api/tvbox?${params.toString()}`;
+  }, [format, configMode, securityConfig]);
 
   const handleCopy = async () => {
     try {
@@ -59,6 +99,24 @@ export default function TVBoxConfigPage() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Copy failed silently
+    }
+  };
+
+  const handleDiagnose = async () => {
+    setDiagnosing(true);
+    setDiagnosisResult(null);
+    try {
+      const params = new URLSearchParams();
+      if (securityConfig?.enableAuth && securityConfig.token) {
+        params.append('token', securityConfig.token);
+      }
+      const response = await fetch(`/api/tvbox/diagnose?${params.toString()}`);
+      const data = await response.json();
+      setDiagnosisResult(data);
+    } catch (error) {
+      setDiagnosisResult({ error: '诊断失败，请稍后重试' });
+    } finally {
+      setDiagnosing(false);
     }
   };
 
@@ -147,6 +205,79 @@ export default function TVBoxConfigPage() {
               {format === 'json'
                 ? '标准的 JSON 配置文件，便于调试和查看'
                 : '编码后的配置，适合某些特殊环境'}
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              配置模式
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <label className="flex items-center cursor-pointer p-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                <input
+                  type="radio"
+                  name="configMode"
+                  value="standard"
+                  checked={configMode === 'standard'}
+                  onChange={(e) => setConfigMode(e.target.value as 'standard' | 'safe' | 'fast' | 'yingshicang')}
+                  className="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-900 dark:text-white block">标准模式</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">完整配置</span>
+                </div>
+              </label>
+              <label className="flex items-center cursor-pointer p-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                <input
+                  type="radio"
+                  name="configMode"
+                  value="safe"
+                  checked={configMode === 'safe'}
+                  onChange={(e) => setConfigMode(e.target.value as 'standard' | 'safe' | 'fast' | 'yingshicang')}
+                  className="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-900 dark:text-white block">精简模式</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">提高兼容</span>
+                </div>
+              </label>
+              <label className="flex items-center cursor-pointer p-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-green-500 dark:hover:border-green-400 transition-colors">
+                <input
+                  type="radio"
+                  name="configMode"
+                  value="fast"
+                  checked={configMode === 'fast'}
+                  onChange={(e) => setConfigMode(e.target.value as 'standard' | 'safe' | 'fast' | 'yingshicang')}
+                  className="mr-2 w-4 h-4 text-green-600 focus:ring-green-500"
+                />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-900 dark:text-white block">快速模式</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">优化切换</span>
+                </div>
+              </label>
+              <label className="flex items-center cursor-pointer p-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                <input
+                  type="radio"
+                  name="configMode"
+                  value="yingshicang"
+                  checked={configMode === 'yingshicang'}
+                  onChange={(e) => setConfigMode(e.target.value as 'standard' | 'safe' | 'fast' | 'yingshicang')}
+                  className="mr-2 w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-900 dark:text-white block">影视仓</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">专用优化</span>
+                </div>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {configMode === 'standard'
+                ? '包含完整配置（IJK优化、广告过滤、DoH等），推荐使用'
+                : configMode === 'safe'
+                ? '仅包含核心配置，遇到TVBox兼容性问题时使用'
+                : configMode === 'fast'
+                ? '⚡ 优化源切换速度，减少卡顿和SSL错误，适合频繁切换源的用户'
+                : '专为影视仓优化，包含播放规则和兼容性修复'}
             </p>
           </div>
 
@@ -318,6 +449,167 @@ export default function TVBoxConfigPage() {
               <li>• 频率限制可能影响频繁刷新，属于正常现象</li>
             )}
           </ul>
+        </div>
+
+        {/* 诊断功能 */}
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                🔍 配置诊断
+              </h2>
+            </div>
+            <button
+              onClick={handleDiagnose}
+              disabled={diagnosing}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+            >
+              {diagnosing ? '诊断中...' : '开始诊断'}
+            </button>
+          </div>
+
+          {diagnosisResult && (
+            <div className="space-y-4">
+              {diagnosisResult.error ? (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+                  <p className="text-red-700 dark:text-red-300">{diagnosisResult.error}</p>
+                </div>
+              ) : (
+                <>
+                  {/* Spider JAR 状态 */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Spider JAR:</h3>
+                    <div className="font-mono text-xs text-gray-600 dark:text-gray-300 break-all mb-2">
+                      {diagnosisResult.spider}
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {diagnosisResult.spiderPrivate === false && (
+                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                          ✓ Spider 是公网地址
+                        </span>
+                      )}
+                      {diagnosisResult.spiderReachable !== undefined && (
+                        diagnosisResult.spiderReachable ? (
+                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                            ✓ Spider 可访问 {diagnosisResult.spiderStatus && `(状态码: ${diagnosisResult.spiderStatus})`}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">
+                            ✗ Spider 不可访问 {diagnosisResult.spiderStatus && `(状态码: ${diagnosisResult.spiderStatus})`}
+                          </span>
+                        )
+                      )}
+                      {diagnosisResult.spiderSizeKB !== undefined && (
+                        <span className={`px-2 py-1 rounded ${
+                          diagnosisResult.spiderSizeKB < 50
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        }`}>
+                          {diagnosisResult.spiderSizeKB < 50 ? '⚠' : '✓'} 文件大小: {diagnosisResult.spiderSizeKB}KB
+                        </span>
+                      )}
+                    </div>
+                    {diagnosisResult.spiderLastModified && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        最后修改: {new Date(diagnosisResult.spiderLastModified).toLocaleString('zh-CN')}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Spider Jar 状态 */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Spider Jar 状态:</h3>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                      <li>• 来源: {diagnosisResult.spider_url || 'unknown'}</li>
+                      <li>• MD5: {diagnosisResult.spider_md5 || 'unknown'}</li>
+                      <li>• 缓存: {diagnosisResult.spider_cached ? '✓ 是' : '✗ 否（实时下载）'}</li>
+                      <li>• 真实大小: {diagnosisResult.spider_real_size ? `${Math.round(diagnosisResult.spider_real_size / 1024)}KB` : 'unknown'}</li>
+                      <li>• 尝试次数: {diagnosisResult.spider_tried || 0}</li>
+                      <li>• 状态: {diagnosisResult.spider_success ? '✓ 成功' : '✗ 降级（使用fallback jar）'}</li>
+                    </ul>
+                  </div>
+
+                  {/* 备用代理地址 */}
+                  {diagnosisResult.spider_backup && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">备用代理地址:</h3>
+                      <p className="font-mono text-xs text-blue-700 dark:text-blue-300 break-all">
+                        {diagnosisResult.spider_backup}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 配置统计信息 */}
+                  {(diagnosisResult.sitesCount !== undefined || diagnosisResult.livesCount !== undefined) && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">配置统计:</h3>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
+                        {diagnosisResult.sitesCount !== undefined && (
+                          <>
+                            <div>影视源数量:</div>
+                            <div className="text-gray-900 dark:text-gray-100">{diagnosisResult.sitesCount}</div>
+                          </>
+                        )}
+                        {diagnosisResult.livesCount !== undefined && (
+                          <>
+                            <div>直播源数量:</div>
+                            <div className="text-gray-900 dark:text-gray-100">{diagnosisResult.livesCount}</div>
+                          </>
+                        )}
+                        {diagnosisResult.parsesCount !== undefined && (
+                          <>
+                            <div>解析源数量:</div>
+                            <div className="text-gray-900 dark:text-gray-100">{diagnosisResult.parsesCount}</div>
+                          </>
+                        )}
+                        {diagnosisResult.privateApis !== undefined && (
+                          <>
+                            <div>私网API数量:</div>
+                            <div className={diagnosisResult.privateApis > 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}>
+                              {diagnosisResult.privateApis}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 候选列表 */}
+                  {diagnosisResult.spider_candidates && diagnosisResult.spider_candidates.length > 0 && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Spider JAR 候选列表:</h3>
+                      <div className="space-y-1">
+                        {diagnosisResult.spider_candidates.map((candidate, idx) => (
+                          <div key={idx} className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">
+                            {idx + 1}. {candidate}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 问题列表 */}
+                  {diagnosisResult.issues && diagnosisResult.issues.length > 0 && (
+                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg">
+                      <h3 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">发现以下问题:</h3>
+                      <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
+                        {diagnosisResult.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {!diagnosisResult && !diagnosing && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+              点击 "开始诊断" 检查 TVBox 配置的健康状态
+            </p>
+          )}
         </div>
       </div>
     </PageLayout>
